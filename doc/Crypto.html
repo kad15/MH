@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="Start" href="index.html">
+<link rel="previous" href="LLL.html">
+<link rel="next" href="Math.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of exceptions" rel=Appendix href="index_exceptions.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="LLL" rel="Chapter" href="LLL.html">
+<link title="Crypto" rel="Chapter" href="Crypto.html">
+<link title="Math" rel="Chapter" href="Math.html">
+<link title="Mh" rel="Chapter" href="Mh.html">
+<link title="Zarith_1_4" rel="Chapter" href="Zarith_1_4.html"><link title="Generating, saving and loading keys" rel="Section" href="#3_Generatingsavingandloadingkeys">
+<link title="Channel encryption and decryption" rel="Section" href="#3_Channelencryptionanddecryption">
+<link title="Cryptanalysis methods" rel="Section" href="#3_Cryptanalysismethods">
+<link title="Utilities" rel="Section" href="#3_Utilities">
+<title>Crypto</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="LLL.html" title="LLL">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Math.html" title="Math">Next</a>
+</div>
+<h1>Module <a href="type_Crypto.html">Crypto</a></h1>
+
+<pre><span class="keyword">module</span> Crypto: <code class="code"><span class="keyword">sig</span></code> <a href="Crypto.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Provides essential utilities for the Merkle-Hellman cryptosystem and
+    some cryptanalysis methods.
+<p>
+
+    This module relies on
+    <a href="https://ocaml-batteries-team.github.io/batteries-included/hdoc2/BatIO.html"> <code class="code"><span class="constructor">BatIO</span></code></a>
+    to make the most of high-order abstract I/O.
+<p>
+
+    Internal functions are not shown below.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEpub"><span class="keyword">type</span> <code class="type"></code>pub</span> </pre>
+<div class="info ">
+The type for a public key<br>
+</div>
+
+
+<pre><span id="TYPEpriv"><span class="keyword">type</span> <code class="type"></code>priv</span> </pre>
+<div class="info ">
+The type for a private key<br>
+</div>
+
+
+<pre><span id="EXCEPTIONKeyIO"><span class="keyword">exception</span> KeyIO</span> <span class="keyword">of</span> <code class="type">string</code></pre>
+
+<pre><span id="EXCEPTIONKeySize"><span class="keyword">exception</span> KeySize</span> <span class="keyword">of</span> <code class="type">string</code></pre>
+
+<pre><span id="EXCEPTIONInvalidKey"><span class="keyword">exception</span> InvalidKey</span> <span class="keyword">of</span> <code class="type">string</code></pre>
+
+<pre><span id="EXCEPTIONInvalidInput"><span class="keyword">exception</span> InvalidInput</span> <span class="keyword">of</span> <code class="type">string</code></pre>
+
+<pre><span id="EXCEPTIONCorruptedBlock"><span class="keyword">exception</span> CorruptedBlock</span> <span class="keyword">of</span> <code class="type">string</code></pre>
+<br>
+<h3 id="3_Generatingsavingandloadingkeys">Generating, saving and loading keys</h3><br>
+
+<pre><span id="VALcreate_keys"><span class="keyword">val</span> create_keys</span> : <code class="type">int -> int -> int -> <a href="Crypto.html#TYPEpub">pub</a> * <a href="Crypto.html#TYPEpriv">priv</a></code></pre><div class="info ">
+Create a pair of public and private keys of a given length.
+<p>
+
+    Usage: <code class="code"><span class="constructor">Crypto</span>.create_keys&nbsp;size&nbsp;d&nbsp;f</code>
+<p>
+<ul>
+<li><code class="code">d</code> and <code class="code">f</code> are two constants used to build the knapsack and affecting
+      its density (see report).
+      For a key of a given length, you may want a larger value for <code class="code">d*f</code> to
+      protect from a dynamic attack, and a lower value for <code class="code">d*f</code> to protect
+      from LLL (high density).</li>
+</ul>
+
+    Example: <code class="code"><span class="keyword">let</span>&nbsp;(pub_k,&nbsp;priv_k)&nbsp;=&nbsp;<span class="constructor">Crypto</span>.create_keys&nbsp;1500&nbsp;20&nbsp;2</code><br>
+<b>Raises</b> <code>KeySize</code> on <code class="code">size&nbsp;&lt;=&nbsp;0</code><br>
+</div>
+
+<pre><span id="VALsave_pub_key"><span class="keyword">val</span> save_pub_key</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> -> string -> unit</code></pre><div class="info ">
+Write a public key to a file (created or overwritten).<br>
+<b>Raises</b> <code>KeyIO</code> if writing fails<br>
+</div>
+
+<pre><span id="VALsave_priv_key"><span class="keyword">val</span> save_priv_key</span> : <code class="type"><a href="Crypto.html#TYPEpriv">priv</a> -> string -> unit</code></pre><div class="info ">
+Write a private key to a file (created or overwritten).<br>
+<b>Raises</b> <code>KeyIO</code> if writing fails<br>
+</div>
+
+<pre><span id="VALsave_keys"><span class="keyword">val</span> save_keys</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> * string -> <a href="Crypto.html#TYPEpriv">priv</a> * string -> unit</code></pre><div class="info ">
+<code class="code"><span class="constructor">Crypto</span>.save_keys&nbsp;(pub_k,&nbsp;<span class="string">"alice.pub"</span>)&nbsp;(priv_k,&nbsp;<span class="string">"alice"</span>)</code> is equivalent to :
+<p>
+
+<code class="code"><span class="constructor">Crypto</span>.save_pub_key&nbsp;pub_k&nbsp;<span class="string">"alice.pub"</span>;<br>
+<span class="constructor">Crypto</span>.save_priv_key&nbsp;pub_k&nbsp;<span class="string">"alice"</span></code><br>
+</div>
+
+<pre><span id="VALload_pub_key"><span class="keyword">val</span> load_pub_key</span> : <code class="type">string -> <a href="Crypto.html#TYPEpub">pub</a></code></pre><div class="info ">
+Load a public key from a file.<br>
+<b>Raises</b><ul><li><code>KeyIO</code> if reading fails</li>
+<li><code>InvalidKey</code> if the file is not a valid (public) key</li>
+</ul>
+</div>
+
+<pre><span id="VALload_priv_key"><span class="keyword">val</span> load_priv_key</span> : <code class="type">string -> <a href="Crypto.html#TYPEpriv">priv</a></code></pre><div class="info ">
+Load a private key from a file.<br>
+<b>Raises</b><ul><li><code>KeyIO</code> if reading fails</li>
+<li><code>InvalidKey</code> if the file is not a valid (private) key</li>
+</ul>
+</div>
+<br>
+<h3 id="3_Channelencryptionanddecryption">Channel encryption and decryption</h3><br>
+
+<pre><span id="VALencrypt_channel"><span class="keyword">val</span> encrypt_channel</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> -> BatIO.input -> 'a BatIO.output -> unit</code></pre><div class="info ">
+Encrypt an input channel and write the result on an output channel
+    block by block.
+<p>
+
+    Example: <code class="code"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;pub_k&nbsp;=&nbsp;<span class="constructor">Crypto</span>.load_pub_key&nbsp;<span class="string">"bob.pub"</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;cin&nbsp;=&nbsp;<span class="constructor">BatIO</span>.input_string&nbsp;<span class="string">"Hello&nbsp;Bob&nbsp;&lt;3"</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;cout&nbsp;=&nbsp;<span class="constructor">BatIO</span>.output_channel&nbsp;(open_out_bin&nbsp;<span class="string">"secret.enc"</span>)&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Crypto</span>.encrypt_channel&nbsp;pub_k&nbsp;cin&nbsp;cout</code><br>
+</div>
+
+<pre><span id="VALdecrypt_channel"><span class="keyword">val</span> decrypt_channel</span> : <code class="type"><a href="Crypto.html#TYPEpriv">priv</a> -> BatIO.input -> 'a BatIO.output -> bool -> unit</code></pre><div class="info ">
+Decrypt an input channel block by block and write the result on an output
+    channel gradually.
+<p>
+
+    Usage: <code class="code"><span class="constructor">Crypto</span>.decrypt_channel&nbsp;priv_k&nbsp;cin&nbsp;cout&nbsp;no_color</code>
+<p>
+<ul>
+<li>If a block is corrupted and cannot be decrypted, write <code class="code"><span class="keywordsign">???</span></code>
+      and go to the next block.
+      Colors can be turned off (especially if the output is not <code class="code">stdout</code>)
+      by setting <code class="code">no_color</code> to <code class="code"><span class="keyword">true</span></code>.</li>
+</ul>
+
+    Example: <code class="code"><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;priv_k&nbsp;=&nbsp;<span class="constructor">Crypto</span>.load_priv_key&nbsp;<span class="string">"bob"</span>&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;cin&nbsp;=&nbsp;<span class="constructor">BatIO</span>.input_channel&nbsp;(open_in_bin&nbsp;<span class="string">"secret.enc"</span>)&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;cout&nbsp;=&nbsp;<span class="constructor">BatIO</span>.stdout&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Crypto</span>.decrypt_channel&nbsp;priv_k&nbsp;cin&nbsp;cout&nbsp;<span class="keyword">false</span></code>
+<p>
+
+    <br>
+<b>Raises</b> <code>InvalidInput</code> if the input is not an encrypted source or is too damaged<br>
+</div>
+<br>
+<h3 id="3_Cryptanalysismethods">Cryptanalysis methods</h3><br>
+<br>
+<center>These methods <i>try</i> to attack a channel with cryptanalysis methods which
+       only rely on the public key. It might be computationally expensive and
+       fall short of memory.</center><br>
+
+<pre><span id="VALdecrypt_channel_dynamic"><span class="keyword">val</span> decrypt_channel_dynamic</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> -> BatIO.input -> 'a BatIO.output -> bool -> bool -> unit</code></pre><div class="info ">
+Try to decrypt an input channel by using dynamic programming to solve the SSP.
+    It is the least efficient method due to memory consumption.
+<p>
+
+    Usage: <code class="code"><span class="constructor">Crypto</span>.decrypt_channel&nbsp;pub_k&nbsp;cin&nbsp;cout&nbsp;flush&nbsp;no_color</code>
+<p>
+<ul>
+<li>If a block is corrupted and cannot be decrypted, write <code class="code"><span class="keywordsign">???</span></code>
+      and go to the next block.
+      Colors can be turned off (especially if the output is not <code class="code">stdout</code>)
+      by setting <code class="code">no_color</code> to <code class="code"><span class="keyword">true</span></code>.</li>
+<li>Set <code class="code">flush</code> to <code class="code"><span class="keyword">true</span></code> to flush the output channel after each block
+      is decrypted (useful to see the progress).</li>
+</ul>
+<br>
+<b>Raises</b> <code>KeySize</code> if it might or actually lack of memory<br>
+</div>
+
+<pre><span id="VALdecrypt_channel_tree"><span class="keyword">val</span> decrypt_channel_tree</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> -> BatIO.input -> 'a BatIO.output -> bool -> bool -> unit</code></pre><div class="info ">
+Try to decrypt an input channel by using a tree+heuristic method.
+<p>
+
+    Usage: same as <a href="Crypto.html#VALdecrypt_channel_dynamic"><code class="code"><span class="constructor">Crypto</span>.decrypt_channel_dynamic</code></a><br>
+</div>
+
+<pre><span id="VALdecrypt_channel_lll"><span class="keyword">val</span> decrypt_channel_lll</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> -> BatIO.input -> 'a BatIO.output -> bool -> bool -> unit</code></pre><div class="info ">
+Try to decrypt an input channel by using the LLL lattice basis
+    reduction algorithm to solve the SSP. Success is not guaranteed and success
+    probability decreases with the length and the density of the key.
+<p>
+
+    Usage: same as <a href="Crypto.html#VALdecrypt_channel_dynamic"><code class="code"><span class="constructor">Crypto</span>.decrypt_channel_dynamic</code></a><br>
+</div>
+<br>
+<h3 id="3_Utilities">Utilities</h3><br>
+
+<pre><span id="VALfprint_pub"><span class="keyword">val</span> fprint_pub</span> : <code class="type">out_channel -> <a href="Crypto.html#TYPEpub">pub</a> -> unit</code></pre><div class="info ">
+Print a public key on an output channel.
+<p>
+
+    Example: <code class="code"><span class="constructor">Crypto</span>.fprint_pub&nbsp;stdout&nbsp;pub_k</code><br>
+</div>
+
+<pre><span id="VALfprint_priv"><span class="keyword">val</span> fprint_priv</span> : <code class="type">out_channel -> <a href="Crypto.html#TYPEpriv">priv</a> -> unit</code></pre><div class="info ">
+Print a private key on an output channel.
+<p>
+
+    Example: <code class="code"><span class="constructor">Crypto</span>.fprint_private&nbsp;stdout&nbsp;priv_k</code><br>
+</div>
+
+<pre><span id="VALdensity_key"><span class="keyword">val</span> density_key</span> : <code class="type"><a href="Crypto.html#TYPEpub">pub</a> -> float</code></pre><div class="info ">
+Compute the density of the knapsack (useful to predict LLL's performances).<br>
+</div>
+</body></html>

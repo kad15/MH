@@ -1,0 +1,169 @@
+\subsection[Cryptanalyse par réduction de réseau : l'algorithme LLL]{Cryptanalyse par réduction de réseau : l'algorithme LLL\protect\footnote{Cette partie fait en grande partie référence aux résultats énoncés dans \cite{MARTIN2004} et \cite{opac}.}}
+
+%\subsection{Cryptanalyse par réduction de réseau : l'algorithme LLL}
+\label{lll}
+
+\paragraph{}Inventé par A. Lenstra, H. Lenstra et L. Lovász en 1982, l'algorithme LLL est un algorithme important dans le domaine de la cryptanalyse. Reposant sur le problème de la somme des sous-ensembles, le code de Merkle-Hellman est une cible de cet algorithme. La théorie mathématique derrière cet algorithme est l'orthogonalisation de bases avec des conditions spécifiques. 
+
+\paragraph{}Cet algorithme en temps polynomial permet de trouver avec une certaine probabilité de succès une séquence de bits qui vérifie le problème de la somme des sous-ensembles. Partant de l'algorithme de Gram-Schmidt sur l'orthogonalisation d'une base quelconque, l'algorithme de réduction impose à cette base des propriétés qu'elle doit vérifier. L'algorithme LLL ramène donc le problème de somme de sous-ensembles à la recherche d'une base. Cette base contient un vecteur court au sens LLL qui est potentiellement la solution du problème SSP.
+
+\paragraph{}L'algorithme LLL est intéressant dans notre étude car il apporte une autre approche de la cryptanalyse : à défaut de prétendre vouloir résoudre un problème NP-complet sur chacun des blocs, on peut préférer, pour des raisons de temps et de coûts, utiliser un algorithme polynomial pour essayer d'obtenir des bribes du message en clair et accepter que le succès ne soit pas garanti. Comme on peut s'en douter, la probabilité de succès diminue avec la taille de la clé, et plus particulièrement avec la densité du sac à dos $T$ définie par :
+
+$$d = \frac{n}{\max_i \log_2 t_i}$$
+
+Des résultats théoriques nous montrent entre autres que si $d \leq 1$, alors la solution du SSP est unique.
+
+\subsubsection{Théorie de la réduction de réseau}
+\paragraph{}L'algorithme LLL repose sur l'orthogonalisation d'une base d'un réseau. Dans la suite, nous utiliserons le réseau de Coster, La Macchia, Odlyzko et Schnorr qui permet d'obtenir de bons résultats pour des sacs à dos ayant une densité $d \leq 0.94$, contrairement à d'autres réseaux pus classiques pour lesquels la densité limite est bien inférieure (\cite{DEROFF}).
+
+En partant de l'orthogonalisation de Gram-Schmidt, nous obtenons une base orthogonalisée. Ensuite, pour que cette base soit LLL-réduite, il faut qu'elle vérifie des conditions sur les vecteurs de la base:
+
+\begin{theo}[Réseau.]
+	Soit $B=(b_1, .., b_n)$ une base de vecteurs réels. $$L = \left \{ \sum_{k=1}^{n} \lambda_k b_k \ / \ \lambda_k \in \mathbb{K} \right \} $$ est un réseau de base B.
+\end{theo}
+
+\begin{theo}[Orthogonalisation de Gram-Schmidt]
+	Soit $B = (b_1, ..., b_n)$ une base du réseau $L \subset \mathbb{R}^n$. L'algorithme d'orthogonalisation de Gram-Schmidt est donné par : $$\mu_{i,j}  = \frac{<b_i, b_i^*>}{<b_j^*, b_j^*>} \  \  \ 1 \leq j < i \leq n$$ 
+		$$b_i^* = b_i - \sum_{j = 1}^{k = i - 1}\mu_{i,j} b_j^*  \  \  \ 1 \leq i \leq n.$$
+	La nouvelle base $B^* = (b_1^*, ..., b_n^*)$ est orthogonalisée selon l'algorithme de Gram-Schmidt.	
+\end{theo}
+
+\begin{theo}[Base Lovász-réduite] On considérera ici que la base $B$ est réduite si $$|\mu_{i,j}| \leq \frac{1}{2} \  \  \ 1 \leq j < i \leq n \ \ et, $$ 
+	$$||b_i^*||^2 \ge \left ( \frac{3}{4} - \mu_{i,i-1}^2 \right )||b_{i-1}^*||^2  \  \  \ 1 < i \leq n.$$
+\end{theo}
+
+La constante $\frac{3}{4}$ est choisie plus ou moins arbitrairement et peut influencer sur le nombre d'itérations et la probabilité de succès. Elle renvoie à une notion de base LLL-réduite pour un facteur $\delta$ que nous ne détaillerons pas ici.
+
+\paragraph{}A l'aide de ces informations sur l'algèbre des bases LLL-réduites, nous pouvons implémenter l'algorithme LLL pour tenter de résoudre le problème SSP.
+
+\newpage
+\subsubsection{Algorithme de la LLL-réduction de base.}
+\paragraph{} L'algorithme de reduction LLL réunit l'algorithme de Gram-Schmidt ainsi que le test des conditions de la base LLL-réduite. Les opérations qui rentrent en jeu dans cet algorithme sont les translations et les échanges de vecteurs. 
+\begin{algorithm}
+\caption{Algorithme LLL}
+
+\begin{algorithmic}[1]
+	\State $b_1^* \leftarrow b_1 ; B_1 = <b_1^*, b_1^*>$
+	\For{\texttt{$i \leftarrow 2 \ \textbf{to} \ n$}}
+		\State $b_i^* \leftarrow b_i$
+		\For{\texttt{$j \leftarrow 1 \ \textbf{to} \ i - 1$}}
+			\State $\mu_{i,j} \leftarrow \frac{<b_i, b_j^*>}{B_j}$
+			\State $b_i^* \leftarrow b_i* - \mu_{i,j} b_j^* $
+		\EndFor 
+		\State $B_i = <b_i ^*, b_i^*>$
+	\EndFor
+	
+	\State $k \leftarrow 2$
+	\State RED($k, k-1$)
+	
+	\If {$B_k <  \left ( \frac{3}{4} - \mu_{k, k-1}^2\right )B_{k-1} $}
+		\State $\mu \leftarrow \mu_{k, k-1};$ $B \leftarrow B_k - \mu^2B_{k-1}; $ $\mu_{k, k-1} \leftarrow \frac{\mu B_{k-1}}{B}$
+		\State $B_k \leftarrow \frac{B_{k-1}B_{k}}{B};$ $B_{k-1} \leftarrow B$
+		\State $b_k \leftarrow b_{k-1}$ 
+		\If {$k>2$}
+			\For {$j \leftarrow 1 \ \textbf{to} \ k -1 $}
+				\State $\mu_{k,j} \leftarrow \mu_{k-1, j}$
+			\EndFor
+		\EndIf
+		\For {$i \leftarrow k+1 \ \textbf{to} \ n$}
+			\State $t \leftarrow \mu_{i,k};$ $\mu_{i,k} \leftarrow \mu_{i, k-1} - \mu t$; $\mu_{i, k-1} \leftarrow t + \mu_{k,k-1}\mu_{i,k}$
+ 		\EndFor
+		
+		\State $k \leftarrow \max\{2, k-1\}$
+		\State \textbf{aller} en 11
+	\Else 
+		\For {$l \leftarrow k- 2 \ \textbf{to} \ 1$}
+			\State RED(k,l)
+		\EndFor
+		\State $k \leftarrow k +1$
+	\EndIf
+	
+	\If {$k \leq n$}
+		\State \textbf{aller} en 11
+	\Else 
+		\State $res \leftarrow (b_1, ..., b_n)$
+	\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\begin{algorithm}
+\caption{RED($k,l$)}
+
+\begin{algorithmic}[1]
+	\If {$|\mu_{k,l}| > \frac{1}{2}$}
+		\State $r \leftarrow \lfloor 0,5 + \mu_{k,l}\rfloor ; $ $ b_k \leftarrow b_k - r b_l$
+		\For {$j \leftarrow 1 \ \textbf{to} \ l-1$}
+			\State $\mu_{k,j} \leftarrow \mu_{k,j} - r \mu{l,j}$
+		\EndFor
+		\State $\mu_{k,l}\leftarrow \mu_{k,l} -r $
+	\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Résolution du problème de la somme des sous-ensembles}
+
+\paragraph{}Dans la suite de ce paragraphe, nous allons décrire l'algorithme qui va nous permettre de tenter de résoudre le problème SSP. Cet algorithme prend en entrée un $n$-uplet $T = (t_1, ..., t_n)$ (la clé publique) et un entier $y$ (le bloc à casser) et, en cas de succès, renvoie un vecteur $(x_i)_{1 \leq i \leq n} \in \{0, 1\}^n$ qui vérifie : 
+$$\sum_{i = 1}^n x_it_i = y$$
+
+\begin{algorithm}
+\caption{Résolution du problème de somme de sous-ensembles avec l'algorithme LLL}
+
+\begin{algorithmic}[1]
+	\State $m \leftarrow \lceil \frac{1}{2}\sqrt{m} \rceil $
+	\State On forme un réseau de dimension $(n+1)$ dont les vecteurs de la base sont les vecteurs colonnes de la matrice :
+	\[ B = \left(
+  		\begin{array}{ c c c c c c }
+     	1 & 0 & 0 & \ldots & 0 & ms_1 \\
+     	0 & 1 & 0 & \ldots & 0 & ms_2 \\
+     	0 & 0 & 1 & \ldots & 0 & ms_3 \\
+     	\vdots & \vdots & \vdots & \ddots & \vdots & \vdots \\
+     	0 & 0 & 0 & \ldots & 1 & ms_n \\
+     	\frac{1}{2} & \frac{1}{2} & \frac{1}{2} & \ldots & \frac{1}{2} & my 
+  		\end{array} \right)
+		\]
+	\State $B \leftarrow \text{LLL } B$ (on applique l'algorithme LLL - algorithme 2 - sur $B$ pour obtenir une nouvelle base réduite)
+	\For {chaque vecteur $(y_1, y_2, \ldots, y_{n+1})$ de $B$}
+		\If {$y_{n+1} = 0 $ and $y_i \in \{ -\frac{1}{2}, \frac{1}{2}\}$, $1 \leq i \leq n$}
+			\For {$i \leftarrow 1 \ \textbf{to} \ n$}
+				\State $x_i \leftarrow y_i + \frac{1}{2}$
+				\If {$ \sum_{i = 1}^n x_i s_i = y $}
+					\State $\text{return } (x_1, \ldots, x_n)$
+				\EndIf
+			\EndFor
+			\For {$i \leftarrow 1 \ \textbf{to} \ n$}
+				\State $x_i \leftarrow - y_i + \frac{1}{2}$
+				\If {$ \sum_{i = 1}^n x_i s_i = y $}
+					\State $\text{return } (x_1, \ldots, x_n)$
+				\EndIf
+			\EndFor
+		\EndIf
+	\EndFor
+	\State $\text{return } NoSolution$
+\end{algorithmic}
+\end{algorithm}
+
+
+\paragraph{} Comme évoqué précédemment, cet algorithme basé sur le réseau de Coster, La Macchia, Odlyzko et Schnorr ne permet d'obtenir de bons résultats que pour des sacs à dos ayant une densité $d \leq 0.94$. En effet, ces auteurs ont montré dans \cite{COSTER} qu'il était nécessaire de définir la variable $m$ de l'algorithme ci-dessus de la façon suivante : $m>\frac{1}{2}\sqrt{n}$. Cela permet d'obtenir une densité limite $d\leq 0.94$ tout en assurant que jusqu'à cette valeur, l'algorithme puisse \textit{presque toujours} trouver un vecteur solution dans un temps polynomial.
+
+\subsubsection{Complexité}
+Soit $B=(b_1, b_2, ..., b_d)$ une base d'un réseau composée de vecteurs $b_i$ de taille $n$. $d$ est alors la dimension du réseau et $n$ la dimension de l'espace. On note de plus $m$ la taille du plus grand vecteur $b_i$ selon la norme euclidienne.
+
+L'algorithme LLL de réduction de base a alors, dans sa version optimisée, une complexité en $\mathcal{O}(d^5nm^3)$.
+
+Il est noté dans \cite{COSTER} et dans de nombreuses autres sources que l'algorithme LLL donne en moyenne de bien meilleurs résultats que ce que la théorie prévoit en pire cas. Ce résultat n'a pas été mathématiquement prouvé mais a été très largement testé de façon empirique.
+
+
+\subsubsection{Résultats}
+
+Après un certain nombre de tests, nous observons qu'augmenter la taille de la clé réduit la probabilité de succès, comme nous pouvions nous en douter. Nous pourrions envisager d'adapter le paramètre $\frac{3}{4}$ apparaissant dans l'algorithme et influençant le nombre d'itérations — et en théorie la probabilité de succès —, mais nous n'avons pas eu le temps de mener suffisamment de tests pour que cette hypothèse soit concluante.
+\\
+
+Sur un PC classique, le temps de calcul est raisonnable pour des clés de taille 200 à 300. De plus, nous avons remarqué que l'algorithme est plus rapide lorsque la densité est inférieure à $0.94$. 
+\\
+
+Enfin pour des clés de petites tailles, nous observons que l'effet de la densité n'est pas aussi déterminant que l'énonce la théorie. Néanmoins, lorsque la clé commence à avoir une taille conséquente (supérieure à 80), les résultats deviennent cohérents et le nombre de blocs déchiffrés avec succès semble être inversement proportionnel à la densité.
+\\
+
+Une étude plus rigoureuse aurait pu être menée comme l'ont fait \cite{DEROFF}, mais cela demande beaucoup de temps compte tenu de la multitude de paramètres impliqués dans cet algorithme.

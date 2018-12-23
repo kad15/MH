@@ -1,0 +1,440 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[frenchb]{babel} % If you write in French
+%\usepackage[english]{babel} % If you write in English
+\usepackage{lmodern} % Pour changer le pack de police
+\renewcommand*\familydefault{\sfdefault}
+\usepackage{makeidx}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{stmaryrd}
+\usepackage{geometry}
+%\usepackage{graphicx}
+\usepackage{graphbox}
+\usepackage{supertabular}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{pdflscape}
+\geometry{hmargin=2cm,vmargin=1.5cm}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[table]{xcolor}
+\usepackage{ltablex}
+\usepackage{float}
+\usepackage{url}
+
+\usepackage{chngcntr}
+\counterwithin*{footnote}{page}
+
+%\usepackage{minted}
+
+\usepackage[titletoc,toc,title,page]{appendix}
+\renewcommand{\appendixtocname}{Annexes}
+\renewcommand{\appendixpagename}{Annexes}
+
+\usepackage{standalone}
+\usepackage{ifthen}
+\usepackage{xstring}
+\usepackage{calc}
+\usepackage{pgfopts}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes,shadows,arrows}
+
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\makeatletter
+\renewcommand{\ALG@name}{Algorithme}
+\renewcommand{\listalgorithmname}{Table des algorithmes}
+
+\newtheorem{theo}{Définition}[section]
+\usepackage{mathtools, bm}
+\usepackage{amssymb, bm}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,       % false: boxed links; true: colored links
+    linkcolor=black,       % color of internal links
+    citecolor=purple,       % color of links to bibliography
+    urlcolor=blue          % color of external links
+}
+\usepackage{listings}
+\definecolor{darkgreen}{rgb}{0, 0.6, 0}
+\lstset{language = caml, frameround = fttt}
+
+\lstset{upquote=true,
+        columns=flexible,
+        keepspaces=true,
+        breaklines,
+        breakindent=0pt,
+        basicstyle=\ttfamily,
+        breaklines=true,
+        keywordstyle=\color{red},
+        commentstyle=\color{darkgreen},
+        tabsize=2,
+        escapebegin=\color{gray},
+}
+\usepackage{blindtext}
+\usepackage{enumitem}
+\title{Projet appliqué au Transport Aérien \\ Chiffrement de Merkle-Hellman - Implémentation et cryptanalyse}
+\author{Florian Barbarin \\ Abdelkader Beldjilali \\ Yanis Bouarroudj \\ Nicolas Holvoet\\ \\ \\ \\Encadrant : Cyril Allignol\\ \\ \\}
+
+% \includegraphics[width=0.6\textwidth]{images/enac}\\[1cm]
+\date{\today}
+
+\makeindex
+\def\siecle#1{\textsc{\romannumeral #1}\textsuperscript{e}}
+\newcommand{\argmax}{\mathop{\mathrm{argmax}}\nolimits}
+\newcommand{\pgcd}{\mathop{\mathrm{pgcd}}\nolimits}
+
+\makeatletter
+\renewcommand{\pod}[1]{\allowbreak\mathchoice
+  {\if@display \mkern 18mu\else \mkern 8mu\fi (#1)}
+  {\if@display \mkern 18mu\else \mkern 8mu\fi (#1)}
+  {\mkern4mu(#1)}
+  {\mkern4mu(#1)}
+}
+
+
+
+
+\begin{document}
+
+\maketitle
+
+\pagebreak
+
+\tableofcontents
+
+\pagebreak
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+%\markboth{Introduction}{} 
+
+Dans un monde où les communications électroniques prennent une importance incommensurable, la sécurité des messages échangés est un enjeu devenu majeur pour l'ensemble des parties prenantes, qu'il s'agisse d'entreprises, d'institutions ou de simples citoyens.
+
+Le secteur de l'aéronautique n'est pas exempt de mettre en œuvre une sécurisation des nombreux messages échangés afin de parer au mieux tout acte malveillant dont le but serait de modifier des messages ou d'intercepter des informations sensibles. On peut aujourd'hui penser aux drones qui échangent avec le sol à la fois des instructions essentielles au vol et des données issues de la mission réalisée (mesures, prises de vue, etc\dots).
+
+\paragraph{} La cryptographie donne les moyens à toutes les entités d'assurer la confidentialité, l'authenticité et l'intégrité des échanges. Un processus de chiffrement transforme le message \textit{en clair} en message \textit{chiffré}, incompréhensible, et le mécanisme de déchiffrement réalise l'opération inverse. L'idée sous-jacente de cette discipline est de faire en sorte qu'un message ayant subi un processus de chiffrement ne puisse être déchiffré qu'à l'aide d'un élément bien identifié par les parties prenantes, appelé \textit{clé}. Un \textit{cryptosystème} est défini par les mécanismes ou algorithmes de (dé)chiffrement, l'ensemble des textes en clair et textes chiffrés ainsi que les clés possibles. 
+
+La cryptographie moderne doit sa robustesse aux avancées de la \textit{cryptanalyse}, la science qui consiste à retrouver le sens d'un message chiffré sans disposer de tout ou partie des clés mises en jeu, en exploitant les vulnérabilités des algorithmes ou une puissance de calcul toujours plus élevée. L'histoire de la cryptographie a donné raison à Auguste Kerckhoffs, cryptologue militaire néerlandais qui énonça à la fin du \siecle{19} siècle plusieurs grands principes, notamment que la sécurité d'un cryptosystème ne devait reposer que sur le secret des clés et non pas sur les mécanismes de (dé)chiffrement, aujourd'hui pour la plupart connus de tous, ou la protection du message chiffré lui-même, puisqu'il est destiné à transiter sur des canaux publics, tels qu'Internet ou les ondes hertziennes.
+
+\paragraph{} Le chiffrement de Merkle-Hellman est un l'un des premiers algorithme faisant appel au concept de cryptographie asymétrique. Il fut défini par Ralph Merkle et Martin Hellman, cryptologues américains, en 1978. Cependant, sa vulnérabilité fut mise en évidence très rapidement, notamment par Adi Shamir dans un article intitulé \textit{A Polynomial Time Algorithm for Breaking the Basic Merkle-Hellman Cryptosystem} \cite{1056964}, ce qui le rend aujourd'hui obsolète.
+
+Avant de rentrer plus en détail dans l'analyse du chiffrement de Merkle-Hellman, un rappel sur la complexité des algorithmes nous permettra de justifier la démarche de la cryptographie. De plus, un rappel sur la cryptographie à clé publique nous servira de base à l'étude qui suivra.
+
+\subsection*{Complexité des algorithmes - Classes de problèmes}
+\addcontentsline{toc}{subsection}{Complexité des algorithmes - Classes de problèmes}
+
+\paragraph{Complexité des algorithmes} La complexité s'attache à déterminer le nombre d'opérations nécessaires à la résolution d'un algorithme. Les résultats de cette discipline permettent de s'assurer en partie que les algorithmes de déchiffrement mettent en œuvre un trop grand nombre d'opérations pour pouvoir être utilisés sans l'aide d'une clé. On tente ainsi de s'assurer qu'aucun système informatique ne puisse réaliser ce grand nombre d'opérations en un temps limité.
+
+On définit un algorithme polynomial comme étant un algorithme dont le nombre moyen d'opérations est un polynôme fonction de la taille (en bits) de la donnée d'entrée. On définit de même un algorithme exponentiel comme étant un algorithme dont le nombre moyen d'opérations s'écrit $ke^{r}$ où $k$ est un constante et $r$ la taille (en bits) de la donnée d'entrée. Ces deux définitions permettent d'établir le fait que l'on pourrait mettre en œuvre, à l'aide d'un système informatique, un algorithme polynomial quelle que soit la taille des données en entrée alors qu'une certaine taille ne nous permettrait pas d'arriver au bout d'algorithme exponentiel en un temps à l'échelle humaine. Ce résultat doit être régulièrement révisé en regard des avancées en termes de puissance de calcul, avec notamment les supercalculateurs et les grappes de calcul que sont prêtes à déployer certaines institutions.
+
+\paragraph{Classes de problèmes} Cela nous amène à définir la classe des problèmes \textbf{P}. Il s'agit des problèmes de décision pouvant être résolus par un algorithme polynomial, dits «~faciles~». Les problèmes appartenant à cette classe ne seront pas utilisés dans le cadre de la cryptographie afin d'être certain de ne pas utiliser un problème qu'un système informatique puisse résoudre trop rapidement.
+
+Introduisons maintenant la classe des problèmes \textbf{NP}. Il s'agit des problèmes de décision dont il est facile, à l'aide d'un algorithme polynomial, de vérifier qu'une solution candidate est bien une solution valide. Ainsi, si l'on a bien que \textbf{P} est un sous-ensemble de \textbf{NP}, l'existence de problèmes pour lesquels on ne connaît pas d'algorithme polynomial permettant de les résoudre amène les mathématiciens à faire la conjecture que \textbf{P $\ne$ NP}.
+
+L'analyse montre que certains problèmes \textbf{NP} peuvent être reformulés comme un cas particulier d'un problème plus universel de \textbf{NP}. Cela a motivé la construction d'une classe de problèmes dits \textbf{NP-complets} qui contiennent les problèmes de \textbf{NP} qui, si on parvient à les résoudre, permettraient de résoudre tous les problèmes de \textbf{NP} avec un facteur polynomial par rapport aux problèmes \textbf{NPC}. Ainsi, on peut donc dire que les problèmes \textbf{NPC}, tous équivalents, sont les problèmes les plus difficiles de la classe \textbf{NP}.
+
+Enfin, on rencontre parfois des problèmes dits \textbf{NP-difficiles}, qui sont au moins aussi difficiles que les problèmes \textbf{NP-complets} mais qui n'appartiennent pas forcément à \textbf{NP}.
+
+\paragraph {} La conjecture \textbf{P $\ne$ NP} a permis de poser les bases de la cryptographie moderne et la «~supériorité~» des problèmes \textbf{NP-complets} explique pourquoi ils sont privilégiés en cryptographie. Il suffit en effet de trouver un problème de cette classe (ce qui nécessite des démonstrations rigoureuses pour justifier son caractère universel) pour être presque certain qu'un système cryptographique s'appuyant sur un tel problème ne pourra être cassé dans un temps humain, à condition de déterminer avec soin la taille minimale de la clé.
+
+\paragraph{Fonctions à sens unique} Toute la problématique de la cryptographie sera de trouver des fonctions dites \textit{à sens unique} dont le calcul de l'inverse repose sur un problème de la classe \textbf{NP} ou \textbf{NPC}. Le calcul d'une instance sera polynomial mais la recherche de l'antécédent à partir du résultat de la fonction sera un problème difficile. Il faudra cependant que cette fonction possède ce que l'on appelle une \textit{trappe}, permettant d'inverser la fonction avec un algorithme polynomial. Il s'agit justement là de la clé de l'algorithme de cryptographie.
+
+On voit donc que pour répondre à l'ensemble de ces spécificités, un cryptosystème doit être étudié de façon rigoureuse et approfondie afin de s'assurer de sa sécurité. C'est ce que l'on s'attachera à faire dans le cadre de cette étude sur le chiffrement de Merkle-Hellman.
+
+La question qui se pose maintenant est de savoir comment et dans quel cadre il est possible de mettre en œuvre ces fonctions à \textit{sens unique} afin d'obtenir un système cryptographique robuste. C'est l'objet de la cryptographie à clé publique.
+
+\subsection*{Cryptographie à clé publique}
+\addcontentsline{toc}{subsection}{Cryptographie à clé publique}
+
+Les premiers cryptosystèmes imaginés depuis l'Antiquité reposaient sur l'échange d'une même clé secrète et étaient ainsi symétriques, toute personne possédant la clé pouvant à la fois chiffrer et déchiffrer un message. Dans un contexte de communication entre différents acteurs, ces systèmes présentent deux inconvénients majeurs. Le premier concerne l'échange initial de la clé secrète : comment faire pour que deux personnes ne pouvant se rencontrer physiquement puissent échanger en toute sécurité la clé secrète sur un canal de communication ? Le second relève de la gestion des clés, qui sont d'autant plus nombreuses que le nombre d'acteurs augmente, chaque paire devant posséder sa clé secrète. Le protocole d'échange de clés de Diffie-Hellman a permis, dans les années 1970, de résoudre le premier problème en faisant en sorte que les deux personnes souhaitant communiquer se mettent simplement d'accord sur une clé qui permettra à chacun de créer une nouvelle clé pour chiffrer ses messages et déchiffrer ceux de l'autre. Cependant, cette méthode possède encore l'inconvénient d'un échange préalable entre les deux interlocuteurs.
+
+\paragraph {} C'est pour tenter de résoudre ces problèmes que le principe de cryptographie à clé publique (dit \textit{asymétrique}) a été mis en œuvre. Dans un tel système, chaque personne possède une seule paire de clés : l'une publique, l'autre privée. Ainsi, si l'on considère qu'Alice souhaite envoyer un message à Bob, Alice va utiliser la clé publique de Bob, librement accessible dans un annuaire, pour chiffrer son message. Dans ce cas, l'échange confidentiel peut avoir lieu et seul Bob sera capable de déchiffrer le message grâce à sa clé privée (que lui seul possède). La figure \ref{crypto_pub} présente ce principe de façon schématique.
+
+\begin{figure}[htp]
+  \centering
+  \includegraphics[width=15cm]{images/crypto_pub.pdf}
+  \caption{Cryptographie à clé publique : schéma simplifié}
+  \label{crypto_pub}
+\end{figure}
+
+RSA est aujourd'hui le cryptosystème à clé publique de référence. Si la cryptographie asymétrique simplifie les communications, elle présente un problème de taille lié à la diffusion de la clé publique. En effet, n'importe qui pourrait tenter de modifier le support listant les différentes clés publiques ou les altérer durant leur transport afin de diffuser sa propre clé publique en usurpant celle de Bob. C'est pour rétablir ce lien de confiance qu'ont été créées des autorités de certification. Enfin, il est courant de chiffrer la clé privée sur le disque à l'aide d'un algorithme de chiffrement symétrique (la clé est communément appelée \textit{passphrase}) pour éviter qu'une fuite involontaire de la clé privée soit préjudiciable.
+
+
+Notons enfin que la cryptographie symétrique est toujours largement utilisée, notamment avec l'algorithme AES, lorsque les conditions garantissant sa sécurité sont réunies : l'échange du secret permettant de générer la clé partagée (ou clé de session) peut se faire de manière chiffrée, notamment via un protocole reposant sur la cryptographie asymétrique (cf. le cryptosystème hybride SSL). Les protocoles de communication modernes rendent transparente la difficile gestion des clés et les nombreux échanges nécessaires entre les interlocuteurs, si bien que cela ne représente plus aujourd'hui un obstacle majeur dans l'utilisation de cryptosystèmes symétriques.
+
+Après avoir présenté ces quelques rappels concernant la complexité des algorithmes et la cryptographie à clé publique, voyons comment ces éléments sont utilisés dans le cadre du chiffrement de Merkle-Hellman.
+
+
+%\section{Chiffrement de Merkle-Hellman}
+
+\section[Chiffrement de Merkle-Hellman]{Chiffrement de Merkle-Hellman\protect\footnote{Cette partie fait en grande partie référence aux résultats énoncés dans \cite{MARTIN2004} et \cite{stinson1996}.}}
+
+Comme nous avons pu le voir en introduction de cette étude, le point de départ d'un système cryptographique est de trouver un problème dans la classe \textbf{NP} voire \textbf{NPC} avant de l'adapter aux exigences de chiffrement et déchiffrement des messages. Une fois ces étapes explicitées, nous verrons comment mettre en œuvre le chiffrement de Merkle-Hellman.
+
+
+
+\subsection{Choix d'un problème difficile}
+\label{problem}
+
+L'une des œuvres les plus influentes concernant la théorie de la NP-complétude est le livre de Michael Garey et David S. Johnson intitulé \textit{Computers and intractability : A guide to the Theory of NP-Completeness} \cite{GJ1979}. Une liste de problèmes \textbf{NPC} y figure en annexe et constitue un excellent catalogue pour le choix d'un problème difficile.
+
+Y figure notamment dans cette liste le problème de la somme de sous-ensembles qui est donc un problème \textbf{NPC}. Voici l'énoncé de ce problème :
+
+$$ \text{Soient }  S = (s_1,...,s_n) \text{ un n-uplet d'entiers strictments positifs tels que } \forall i\neq j, s_i \neq s_j \text{ et } y \text{ un entier.}$$ 
+$$\text{Peut-on trouver un sous-ensemble de } S \text{ dont la somme est égale à } y \text{?}$$
+
+Il s'agit d'un problème de décision pour lequel il existe un algorithme polynomial permettant de vérifier si une instance du problème est solution. En effet, si $S = (987, 2, 56, 124, 33)$ et $y = 182$, on peut vérifier avec une complexité polynomiale (linaire) que $182 = 2 + 56 + 124$ et donc que le sous-ensemble $(2, 56, 124)$ de $S$ est bien une solution du problème.
+
+Il n'existe cependant pas d'algorithme polynomial permettant de trouver un sous-ensemble de $S$ dont la somme des éléments serait égale à $y$. En effet, il s'agit là de tester l'ensemble des parties de $S$, ensemble dont le cardinal est égal à $2^n$. Dans notre exemple, $n = 5$ et il faudrait donc tester $2^5 = 32$ sous-ensembles, ce qui serait envisageable. Cependant, on se rend compte que la complexité de cet algorithme est exponentielle et qu'un nombre $n$ trop grand rendrait impossible son exécution dans un temps raisonnable.
+
+Il est à noté que ce problème de somme de sous-ensembles est un cas particulier du «~problème du sac-à-dos~» où il s'agit de trouver le meilleur sous-ensemble d'objets permettant de maximiser la contenance d'un sac sans la dépasser.
+
+Voyons maintenant comment ce problème de somme de sous-ensembles peut être adapté à un problème de cryptographie.
+
+\subsection{Adaptation du problème}
+
+Comme nous l'avons vu en introduction, il est nécessaire de trouver une fonction à sens unique permettant de chiffrer facilement des données tout en faisant en sorte que l'inversion de la fonction soit difficile. De plus, cette fonction doit être munie d'une trappe pour permettre au destinataire légitime du message son déchiffrement. Nous verrons ensuite comment perturber le problème afin de masquer la trappe.
+
+\subsubsection{Fonction à sens unique}
+
+Après l'étude du problème de somme de sous-ensembles à la section \ref{problem}, il apparait intéressant de le traduire sous forme de fonction à sens unique. En effet, dans un sens, une instance du problème nous donnera une somme d'éléments de $S$ formant ainsi un entier $y$. Dans l'autre sens, retrouver un sous-ensemble de $S$ à partir de $y$ revient à résoudre le problème de somme de sous-ensembles, cas particulier du problème du sac-à-dos, que l'on sait de classe \textbf{NPC}.
+
+Comme nous cherchons par exemple à chiffrer un message textuel, nous pouvons associer un nombre à chaque lettre. On choisit arbitrairement a = 1, b = 2, ..., y = 25 et z = 26. Or tout entier $x$ tel que $ 0\leq x\leq 2^n-1$ peut être représenté de façon unique sur $n$ bits. On obtient alors, toujours pour continuer l'exemple, la représentation suivante où $n = 5$ :
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Lettre} & a & b & c & d & ... & w & x & y & z\\
+\hline
+\textbf{Nombre associé} & 1 & 2 & 3 & 4 & ... & 23 & 24 & 25 & 26\\
+\hline
+\textbf{Valeur binaire associée} & 00001 & 00010 & 00011 & 00100 & ... & 10111 & 11000 & 11001 & 11010\\
+\hline
+\end{tabular}
+\end{center}
+
+De façon générale, pour chaque caractère auquel est associé un vecteur de $n$ bits $X$, peut écrire une fonction f telle que :
+
+$$f(X) = \langle S , X\rangle = y$$ 
+
+où $S$ est un n-uplet tel que défini dans la section \ref{problem}.
+
+Si l'on reprend le vecteur $S = (987, 2, 56, 124, 33)$ vu précédemment, et la lettre \textit{w} dont le code binaire associé est \textit{10111}, on a alors $X = (1, 0, 1, 1, 1)$ et ainsi :
+
+$$f("w") = f(X) = \langle S , X\rangle = 987 + 56 + 124 + 33 = 1200$$
+
+Le cryptogramme associé à la lettre w est donc 1200.
+
+Pour inverser la fonction, il faut retrouver un sous-ensemble de $S$ dont la somme est égale à $y$. L'exercice n'est pas difficile pour $n=5$ mais le devient très rapidement lorsque $n$ augmente. Bien entendu, on peut chiffrer plusieurs caractères en même temps en concaténant leur représentation binaire et en augmentant en conséquence la taille $n$ de $S$. Cela constitue le choix de la taille des blocs que l'on souhaite chiffrer.
+
+\subsubsection{Introduction d'une trappe}
+\label{trappe}
+
+Après avoir trouvé une fonction à sens unique au paragraphe précédent, la problématique est maintenant de pouvoir, dans certains cas, inverser la fonction afin de retrouver le message initial. Il s'agit donc d'introduire une trappe dans notre fonction à sens unique qu'il faudra ensuite masquer pour ne pas qu'elle soit exploitée par d'autres personnes que le destinataire légitime. 
+
+Le problème de somme de sous-ensembles que nous avons choisi d'implémenter admet notamment une classe de problèmes pouvant se résoudre facilement, en temps polynomial. C'est en effet le cas lorsque le vecteur $S$ forme une suite super-croissante :
+
+$$\text{On dit qu'une suite } S_n = (s_i)_{i\in \llbracket1, n\rrbracket}  \text{ est super-croissante si } \forall j,~2\leq j \leq n,~s_j > \sum \limits_{{i=1}}^{j-1} s_i$$
+
+Dans ce cas, le problème de somme de sous-ensembles se résout en temps polynomial (linéaire) de manière gloutonne en parcourant les éléments de la suite du plus grand indice au plus petit. En effet, étant donnés une somme $z$ et l'indice $j$ tel que $j = \argmax_i z \ge s_i$, par la relation $z \ge s_j > \sum \limits_{{i=1}}^{j-1} s_i$, il est nécessaire de sélectionner l'entier $s_j$ puisque la somme des éléments restants ne nous permettrait pas d'espérer égaliser $z$. On soustrait alors à $z$ le poids $s_j$ et on réitère sur $z$ et $S = (s_1, …, s_{j-1})$. Si à la fin de l'algorithme $z = 0$, alors les entiers $s_j$ sélectionnés forment bien un sous-ensemble de $S$ solution du problème. Sinon, il n'y a pas de solution. On reproduit ci-dessous cet algorithme.
+
+\begin{algorithm}
+\caption{Résolution du problème de somme de sous-ensembles $(z, S)$ pour une suite super-croissante $S$}
+\begin{algorithmic}[1]
+\label{subset_algo}
+\For {$i \leftarrow n \ \textbf{downto} \ 1$}
+	\If {$z \geq s_i$}
+		\State $z \leftarrow z-s_i$
+		\State $x_i \leftarrow 1$
+	\Else 
+		\State {$x_i \leftarrow 0$}
+	\EndIf
+\EndFor
+\If {$z = 0$}
+	\State $(x_1, x_2, ..., x_n) \text{ est solution et } z = \sum \limits_{{i=1}}^{n} x_i s_i$
+\Else
+	\State Il n'y a pas de solution
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+
+La propriété de cette classe est donc intéressante pour qu'une personne légitime puisse facilement déchiffrer un message. Cependant, pour éviter que tout le monde ait cette possibilité, il faut perturber le vecteur $S$ afin qu'il perde cette propriété tout en pouvant la retrouver.
+
+\subsubsection{Perturbation}
+\label{clés}
+
+L'idée derrière ce processus de perturbation est d'obtenir un nouveau vecteur $T$ qui aura perdu la propriété de super-croissance mais qui, grâce à l'arithmétique modulaire et à l'homogénéité du problème de somme de sous-ensembles, formera par construction un problème équivalent à celui faisant intervenir $S$, mais difficile. On introduit pour cela la notion d'inverse modulaire : 
+
+$$\text{Soient } p \text { un entier et } a \in \mathbb{Z}/p\mathbb{Z} \text{. On a alors : } \pgcd(a,p) = 1 \Leftrightarrow a \text{ est inversible.}$$
+
+On peut alors choisir un entier $p > \sum \limits_{{i=1}}^{n} s_i$ et un entier $a$ tel que $1\leq a \leq p-1$ et $a$ premier avec $p$. On est alors assuré de l'existence de $a^{-1}$ dans $\mathbb{Z}/p\mathbb{Z}$ et on peut former le vecteur $T$ de la façon suivante : 
+
+$$\forall i \in \llbracket 1, n \rrbracket,\text{ } t_i \equiv a \times s_i \pmod p$$
+
+On a alors, dans $\mathbb{Z}/p\mathbb{Z}$, $\overline{T} = \overline{aS}$ et $\overline{S} = \overline{a^{-1}T}$. Ainsi, par homogénéité du problème de somme de sous-ensembles, si $X$ est solution de l'instance du problème $(T, y)$, alors $X$ est également solution de l'instance $(S, \overline{a^{-1}y})$. Autrement dit, à partir de notre problème facile faisant intervenir la trappe $S$, nous avons créé un problème difficile, équivalent. Il est donc important que les paramètres $a$ et $p$ restent secrets puisque c'est leur méconnaissance qui donne au problème $(T, y)$ son caractère \textbf{NP-complet}.
+
+Maintenant que nous avons explicité tous ces éléments, voyons comment ceux-ci peuvent être mis en œuvre dans le cadre d'un chiffrement à clé publique.
+
+\subsubsection{Application au chiffrement à clé publique}
+
+Dans le cadre d'un système de chiffrement à clé publique, si Alice souhaite envoyer un message à Bob, cette première chiffre son message avec la clé publique de Bob qui le déchiffrera alors avec sa clé privée. Il est donc nécessaire de définir les éléments constitutifs de la clé publique et de la clé privée de Bob.
+
+\paragraph{Clé privée de Bob} Comme nous l'avons esquissé à la section \ref{clés}, Bob va tout d'abord générer une suite d'entiers super-croissante pour former un vecteur $S$ de taille $n$ ($n$ sera la taille des blocs à chiffrer). Il choisira ensuite un entier $p$ tel que $p > \sum \limits_{{i=1}}^{n} s_i$ et un entier $a$ tel que $1\leq a \leq p-1$ et $\pgcd(a,p) = 1$. La clé privée de Bob sera donc le triplet $(S, p, a)$.
+
+\paragraph{Clé publique de Bob} Comme nous l'avons également vu au paragraphe \ref{clés}, Bob va pouvoir, à partir de $S$, générer une suite d'éléments n'ayant pas la propriété de super-croissance qu'il rangera dans un vecteur $T$ de taille $n$. Il effectue pour cela l'opération $t_i \equiv a \times s_i \pmod p$, $\forall i \in \llbracket 1, n \rrbracket$. Le vecteur $T$ constituera alors la clé publique de Bob.
+
+\paragraph{Chiffrement par Alice} Alice souhaitant envoyer un message $x$ à Bob, elle va utiliser la représentation binaire $X$ associé à son message pour effectuer l'opération $y = \langle T , X\rangle$ et transmettra la valeur de $y$ à Bob qui sera le seul à pouvoir la déchiffrer grâce à sa clé privée.
+
+\paragraph{Déchiffrement par Bob} Une fois que Bob a reçu la valeur de $y$, il effectue l'opération $z \equiv a^{-1} \times y \pmod p$ puisqu'il connait $a$ et $p$. La valeur obtenue permet à Bob de résoudre le problème de somme de sous-ensembles non pas avec $T$, ce qui serait un problème \textbf{NPC}, mais avec le vecteur $S$ super-croissant, grâce à l'algorithme décrit à la section \ref{trappe}. Les éléments $s_i$, $1\leq i\leq n$ sélectionnés à la suite de cet algorithme correspondent à la position des $1$ dans le code binaire initialement envoyé par Alice. Bob est alors capable de reconstituer le message $x$ initial.
+
+\paragraph{Attaque par Oscar}  Si une personne malveillante que nous nommerons Oscar intercepte le message chiffré émis par Alice, il serait contraint de résoudre le problème \textbf{NPC} de somme de sous-ensembles en connaissant les poids de la clé publique $T$ et la somme $y$, car il n'a pas connaissance de $a$ et $p$ permettant de ramener le problème à une instance facile. Ainsi, la taille de la clé (en termes de nombre d'éléments du vecteur) influence directement sur la difficulté à casser le code et donc la confidentialité du message.
+
+\subsubsection{Authenticité et intégrité}
+
+Pour terminer cette introduction au chiffrement de Merkle-Hellman, notons que dans un système à clé publique basique tel que présenté jusqu'ici, seule la confidentialité est assurée et rien ne permet à Bob de déterminer si un message provient d'Alice ou d'Oscar. Pourtant, cela peut devenir nécessaire pour parer toute tentative d'usurpation (par exemple, l'envoi de commandes de vol à un drone ne doit pouvoir se faire qu'à partir d'un émetteur légitime). Certains cryptosystèmes asymétriques comme RSA possèdent une certaine propriété permettant d'assurer l'authentification de l'émetteur : il est en effet possible de chiffrer avec une clé privée et de déchiffrer avec la clé publique associée. Ainsi, Alice peut encapsuler le message destiné à Bob – et donc chiffré avec la clé publique de Bob – en le chiffrant ensuite avec sa propre clé privée. Bob pourra alors déchiffrer la trame reçue à l'aide de la clé publique d'Alice puis déchiffrer le résultat à l'aide de sa clé privée. Si le message obtenu a un sens, alors l'émetteur est bien Alice. Cette dernière étant la seule à pouvoir produire une trame chiffrée à l'aide de sa clé privée, l'authenticité est assurée. Le code de Merkle-Hellman ne possède pas cette propriété et il est dit à sens unique (\textit{one-way}) – à ne pas confondre avec la fonction à sens unique reposant sur un problème difficile –, c'est-à-dire qu'il n'est mathématiquement pas possible d'utiliser une clé privée pour chiffrer et la clé publique associée pour déchiffrer, et il ne permet donc pas l'authentification.
+
+Enfin, pour être exhaustif, la cryptographie s'intéresse aussi à assurer l'intégrité du message afin de s'assurer qu'il n'a pas subi de transformation malveillante ou d'ordre technique (pertes notamment) lors de sa transmission. Cela est généralement réalisé en calculant une somme de contrôle, un petit «~résumé~» du message, ajoutée à la fin de la trame et recalculée puis comparée à la réception. En cas de différence, le message doit être réémis. Nous ne nous intéresserons pas à cette problématique dans la suite de cette étude.
+
+\subsection{Mise en œuvre du cryptosystème de Merkle-Hellman}
+
+Nous détaillerons dans cette partie notre implémentation du cryptosystème de Merkle-Hellman. Les remarques plus techniques ou liées au langage OCaml se trouvent en annexes \ref{annexe_programme} et \ref{annexe_ocaml}.
+
+\subsubsection{Génération des clés}
+\label{generation_cle}
+
+La génération d'une paire de clés commence par le choix de la taille $n$, laissée à l'appréciation de l'utilisateur. La longueur de la clé peut être quelconque, détermine la taille des blocs et influence directement sur la robustesse du chiffrement. On commence tout d'abord par générer une suite $S$ super-croissante de $n$ entiers strictement positifs. Le terme $s_{k+1}$ peut-être choisi aléatoirement dans un intervalle de la forme :
+
+$$\left] \sum \limits_{{i=1}}^{k} s_i,~\sum \limits_{{i=1}}^{k} s_i + D \right]$$
+
+avec $s_0\in  \left] 0,D \right]$. 
+
+Il convient ensuite de choisir l'entier $p$ avec la seule contrainte que $p > \sum \limits_{{i=1}}^{n} s_i$. Pour faciliter le choix de $a$, nous choisissons $p$ premier, et plus précisément le nombre premier directement supérieur à un nombre aléatoire tiré dans $\left] \sum \limits_{{i=1}}^{n} s_i,~F \sum \limits_{{i=1}}^{n} s_i \right]$. Pour ce faire, après avoir tiré ce nombre, on itère sur chacun de ses successeurs jusqu'à trouver un nombre \textit{probablement} premier en utilisant le test de primalité probabiliste de \textbf{Miller-Rabin}. Ce test permet de conclure soit de façon certaine que le nombre est composé, soit qu'il est probablement premier avec une probabilité d'erreur que l'on peut maîtriser (\cite{opac} donne une table pour une probabilité de $2^{-80}$, avec $k = 27$ \textit{rounds} dans le pire cas). Nous avons choisi ce test car il est connu pour être plus précis que les tests analogues de Fermat ou de Solovay-Strassen et reste très efficace, avec une complexité s'exprimant en $\mathcal{O}(k\log^2{n})$, en regard d'une méthode exacte qui serait bien plus coûteuse.
+
+Le choix de $a$ premier avec $p$ est alors simplifié puisqu'il nous suffit de le choisir aléatoirement dans l'intervalle $\left[ 1,p \right[$. Pour éviter d'avoir à le recalculer par la suite, nous déterminons aussi l'inverse modulaire de $a$ dans $\mathbb{Z}/p\mathbb{Z}$ grâce à l'algorithme d'Euclide étendu qui nous donne les coefficients de Bézout et dans notre cas $a^{-1}$.
+
+Finalement, le quintuplet $(n, S, p, a, a^{-1})$ constitue la clé privée. La clé publique $(n, T)$ est obtenue simplement en calculant $T = aS \pmod p$. \\
+
+\paragraph{Choix des paramètres D et F} Le delta d'accroissement $D$ et le facteur $F$ utilisés lors de la génération de la clé privée influencent alors directement sur les paramètres du cryptosystème. En effet, sans être très rigoureux,
+
+\begin{itemize}
+\item dans le « pire cas » et par le caractère super-croissant de la clé privée, le dernier élément $s_n$ vaudra $D2^{n-1}$ ;
+\item on aura alors $p$ de l'ordre de grandeur de $D2^n$ à $FD2^n$ ;
+\item les éléments de la clé publique $T$ sont majorés par $p$ par le modulo et un bloc chiffré $y$ sera donc borné par $n \times FD2^n$.
+\end{itemize}
+
+
+Or, comme nous le verrons dans la deuxième partie, il est nécessaire de porter une attention particulière au problème NP-complet $(T, y)$. En effet, les méthodes de cryptanalyse que nous présenterons peuvent être mises à mal par la valeur maximale du bloc et donc de $FD$ (programmation dynamique) ou au contraire être facilitées lorsque le sac à dos est dilaté, a une faible densité avec une valeur de $FD$ élevée (LLL). Ainsi, la spécification de ces paramètres doit être faite en regard de ces considérations cryptanalytiques – ici incompatibles – pour trouver un compromis satisfaisant, tout en prenant garde à ne pas céder du terrain au déterminisme. Pour clore la discussion, c'est bien entendu la taille $n$ de la clé qui assurera presque à elle seule la robustesse du code.\\
+Nous avons choisi dans notre implémentation des valeurs par défaut $D=20$ et $F=2$ de manière arbitraire et laissons à l'utilisateur la possibilité de les modifier, afin de mesurer pour une même taille de clé l'effet de la densité sur les performances d'un algorithme de cryptanalyse. La forme des deux intervalles ci-dessus (génération de la suite super-croissante et choix de $p$) est là aussi arbitraire et on aurait très bien pu imaginer d'autres constructions.
+
+
+\paragraph{} \textit{N.B.} Nous ne proposons pas de chiffrer la clé privée avec un algorithme de chiffrement symétrique, ce qui serait en pratique souhaitable pour qu'une fuite involontaire de la clé ne soit préjudiciable.
+
+\subsubsection{Chiffrement, padding}
+
+Puisqu'une clé de taille $n$ permet de chiffrer $n$ bits, il est nécessaire de diviser notre message binaire en blocs de $n$ bits. Le chiffrement de chaque bloc est alors indépendant et le message chiffré correspond à la juxtaposition des blocs chiffrés.
+Dans notre implémentation, nous lisons le flux d'entrée octet par octet dans un \textit{buffer} et lorsque le nombre de bits lus atteint $n$, nous chiffrons le bloc en calculant le produit scalaire entre le bloc binaire et la clé publique. Le résultat est alors écrit sur le flux de sortie. La lecture reprend ensuite jusqu'à collecter un nouveau bloc, et ainsi de suite. Le chiffrement par blocs nous permet de chiffrer des messages, fichiers de taille quelconque sans souci de mémoire puisque nous pouvons lire la source en claire et écrire le résultat chiffré blocs par blocs.
+
+\paragraph{} Pour pouvoir utiliser des clés de taille quelconque sur des entrées de taille variable, il a été nécessaire d'utiliser du \textit{padding} («~bourrage~») pour compléter artificiellement le message afin qu'il ait une taille multiple de la longueur d'un bloc. Nous utilisons un méthode simple et standardisée qui consiste à ajouter un bit $1$ à la fin du message puis autant de bits $0$ que nécessaire pour construire un bloc de taille $n$. Ainsi, à la fin de la lecture du flux d'entrée, deux cas sont possibles~:
+
+\begin{itemize}
+\item Soit le \textit{buffer} contient déjà $n$ bits et l'on a un bloc valide que l'on chiffre. On ajoute alors un bloc complet de \textit{padding} : $\underbrace{100...00}_{n}$.
+\item Soit le \textit{buffer} contient moins de $n$ bits et on le complète alors avec un $1$ suivi d'autant de $0$ que nécessaire (voire aucun $0$) : $\underbrace{\text{xx...xx}100...00}_{n}$.
+\end{itemize}
+
+Ce dernier bloc est chiffré comme les précédents. La figure \ref{chiffrement} illustre le chiffrement d'un flux d'entrée avec une clé de taille 11. Cette méthode de bourrage est simple et ne crée pas d'ambiguïté puisque l'on sait dans les deux cas de figure que l'information utile se termine exactement au bit qui précède le premier bit non nul, en partant de la fin. Néanmoins, certaines méthodes de \textit{padding} introduisent des vulnérabilités dans le code que la cryptanalyse pourra exploiter pour obtenir de l'information sur le message en clair. Il existe ainsi des méthodes standardisées de \textit{padding} aléatoire que nous n'aborderons pas dans notre étude\footnote{Utiliser du \textit{padding} aléatoire peut avoir l'avantage, y compris lorsque le message a déjà une taille multiple de celle d'un bloc, de produire des messages chiffrés différents pour un même message clair.}.
+
+\begin{figure}[!h]
+\begin{center}
+\hspace*{-0.8in}
+  \centering
+  \includegraphics[width=20cm]{images/chiffrement.pdf}
+  \caption{Chiffrement d'un flux avec une clé de taille $n = 11$}
+  \label{chiffrement}
+\end{center}
+\end{figure}
+
+\newpage
+
+\subsubsection{Déchiffrement}
+
+Le déchiffrement d'un bloc $y$ (issu d'un produit scalaire et donc représenté comme un entier) nécessite tout d'abord de calculer $z \equiv a^{-1} \times y \pmod p$ pour transporter le problème de somme de sous-ensembles dans la base «~facile~» de la clé privée super-croissante. Il suffit ensuite de résoudre l'instance polynomiale du problème avec la clé privée et $z$, de manière gloutonne telle que décrite au paragraphe \ref{trappe}. Les poids de la clé que nous aurons sélectionnés correspondent, par leur position, aux bits $1$ du bloc initial. Finalement, la juxtaposition des blocs déchiffrés nous donne une séquence binaire que nous écrivons alors octet par octet sur la sortie, reconstruisant ainsi le message initial. Il s'agit simplement du processus inverse de celui présenté sur la figure \ref{chiffrement}.
+
+\begin{figure}[!h]
+\begin{center}
+\hspace*{-0.8in}
+  \centering
+  \includegraphics[width=20cm]{images/dechiffrement.pdf}
+  \caption{Déchiffrement d'un flux chiffré à l'aide d'une clé de taille $n = 11$}
+  \label{dechiffrement}
+\end{center}
+\end{figure}
+
+Dans notre implémentation, nous avons choisi, à l'instar du chiffrement, de déchiffrer le flux par blocs et d'écrire au fur et à mesure le résultat en clair sur la sortie. Néanmoins, puisque nous n'avons pas \textit{a priori} connaissance de la longueur du flux chiffré et que l'écriture sur la sortie ne peut être annulée ni corrigée, il a fallu pouvoir détecter la fin du flux pour gérer correctement le \textit{padding}. Pour cela nous utilisons deux \textit{buffers} et nous différons le déchiffrement d'un bloc $y_n$, stocké dans le 1\ier{} \textit{buffer}, après avoir tenté de lire le bloc $y_{n+1}$ dans le 2\up{d} \textit{buffer} : si on y parvient, on traite le bloc $y_n$ normalement, sinon, c'est qu'on a atteint la fin du flux et le bloc $y_n$ est traité comme le dernier bloc. Les deux \textit{buffers} jouent des rôles symétriques et on procède ainsi jusqu'à la fin de l'entrée. Le déchiffrement du dernier bloc tient compte du \textit{padding} introduit lors du chiffrement. Après résolution du problème de somme de sous-ensembles sur ce dernier bloc, il nous suffit de parcourir la séquence binaire obtenue de droite à gauche pour trouver la fin de l'information utile (bit qui précède le premier bit non nul, cf. paragraphe précédent).
+
+\paragraph{} Sur l'exemple précédent, on procéderait ainsi pour traiter le flux chiffré :
+
+\begin{itemize}
+\item On essaie de lire le prochain bloc dans $\mathrm{buffer}_1$. On a $\mathrm{buffer}_1 = 352170$.
+\item On essaie de lire le prochain bloc dans $\mathrm{buffer}_2$. On a $\mathrm{buffer}_2 = 158960$.
+\item On sait donc que $\mathrm{buffer}_1$ n'est pas le dernier bloc et on le déchiffre normalement.
+\item On essaie de lire le prochain bloc dans $\mathrm{buffer}_1$. On a $\mathrm{buffer}_1 = 8645$.
+\item On peut donc déchiffrer $\mathrm{buffer}_2$ normalement.
+\item On essaie de lire le prochain bloc dans $\mathrm{buffer}_2$. On se heurte à la fin du flux.
+\item Le dernier bloc lu est contenu dans $\mathrm{buffer}_1$ et on le déchiffre en tenant compte du \textit{padding}.
+\end{itemize}
+
+
+
+\paragraph{} \textit{N.B.} Il se peut que le message soit altéré durant sa transmission et que certains blocs deviennent invalides. On détecte notamment ce type d'erreurs lorsque la résolution du problème de somme de sous-ensembles échoue à égaliser la valeur chiffrée d'un bloc. Face à un tel cas, nous avons choisi d'ignorer le bloc corrompu et de poursuivre le déchiffrement du message. Pour cela, il est nécessaire de ne pas introduire de décalage d'octets qui rendrait le reste du message inintelligible, la taille d'un bloc n'étant pas forcément un nombre entier d'octets. Nous déterminons donc la position du prochain octet valide dans le bloc suivant, en fonction de la taille $n$ des blocs et du nombre de blocs traités jusque-là. Par exemple, on voit sur la figure \ref{dechiffrement} que si l'on ne parvenait pas à déchiffrer le premier bloc, il faudrait également ignorer les 5 premiers bits du 2\ieme{} bloc déchiffré – car ils n'ont plus de sens sans les 3 bits manquants – et donc n'écrire qu'à partir du 6\ieme{} bit, i.e. le premier bit du 3\ieme{} octet.
+\\
+Cela nous sera particulièrement utile pour la suite, lorsque la cryptanalyse échouera à casser un bloc et que l'on souhaitera néanmoins obtenir des bribes du message en clair.
+
+\section{Cryptanalyse du code de Merkle-Hellman}
+\paragraph{}La cryptanalyse consiste à retrouver le sens du message en clair à partir du message chiffré sans être en possession de tout ou partie des clés mises en jeu. Dans notre étude, cryptanalyser le code de Merkle et Hellman reviendra à résoudre le problème 
+de somme de sous-ensembles, \textit{sum of subsets problem} ou SSP, pour la clé publique $T$ et un bloc chiffré quelconque. Bien que le problème reste fondamentalement \textbf{NP-complet}, nous verrons en quoi le code de Merkle-Hellman peut être perçu comme vulnérable à l'aide de différentes méthodes qui seront décrites dans cette partie. Adi Shamir a notamment publié en 1984 un article intitulé \textit{A Polynomial-Time Algorithm for Breaking the basic Merkle-Hellman Cryptosytem} (\cite{1056964}) dans lequel il propose une méthode pour casser le code, devenue référence. 
+\paragraph{}Nous commencerons par explorer deux méthodes d'attaque par force brute, puis nous présenterons la méthode de réduction de réseau. 
+
+%~\cite{étiquette} (le ~ signifiant espace insécable). 
+
+\input{dyn_rec} % input évite le saut de page contrairement à include
+% \include{dyn_rec}
+\include{lll}
+
+\include{conclusion}
+
+
+
+
+
+
+\newpage
+\appendix
+
+\include{annexe_programme}
+
+\include{annexe_ocaml}
+
+\newpage
+\nocite{*}  %affiche toutes les entrées du bib même celles qui ne sont pas citées.
+% cf.    http://www.tuteurs.ens.fr/logiciels/latex/bibtex.html
+% compilation en TROIS PHASE  bibtex traite un fichier *.aux mais bibtex mon_fichier comme bibtex mon_fichier.aux sont acceptés 
+% latex mon_fichier.tex
+% bibtex mon_fichier
+% latex mon_fichier.tex
+
+
+% \renewcommand{\bibname}{Toto}
+% ou
+\renewcommand{\refname}{Bibliographie}
+% dans le préambule.
+\bibliographystyle{alpha}
+\bibliography{references}
+\end{document}

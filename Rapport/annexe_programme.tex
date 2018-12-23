@@ -1,0 +1,26 @@
+\section{Structure du code et utilisation du programme}
+\label{annexe_programme}
+
+Pour écrire ce programme, nous avons utilisé plusieurs modules dont :
+\\
+\begin{description}[leftmargin=!,labelwidth=\widthof{\bfseries Cmdliner}]
+\item[Zarith] Pour manipuler des entiers supérieurs à \lstinline|max_int| (interface GMP).
+\item[Bignum] Pour manipuler des réels non représentables (Bignum.Std.Bignum) et pour générer de grands nombres aléatoires (avec Bignum.Std.Bigint, construit sur Zarith). Dépend de \textbf{Core}.
+\item[Batteries] Et plus particulièrement BatIO pour bénéficier d'entrées-sorties abstraites permettant de rendre l'interface homogène et d'élargir les champs d'utilisation (canaux de Pervasives, chaînes de caractères, objets BatEnum…).
+\item[Cmdliner] Pour construire l'interface en ligne de commande. Le compromis entre sa prise en main quelque peu déroutante et les services rendus (sous-commandes, génération de pages d'aide et de \texttt{man}, gestion des erreurs de syntaxe…) est intéressant.
+\end{description}
+
+\paragraph{} Le code est divisé en plusieurs fichiers :
+\\
+
+\begin{description}[leftmargin=!,labelwidth=\widthof{\bfseries \texttt{crypto.ml}}]
+\item[\texttt{crypto.ml}] Ce module contient les fonctions du cryptosystème (génération des clés, chiffrement et déchiffrement) ainsi que quelques méthodes de cryptanalyse.
+\item[\texttt{math.ml}] Étend Zarith en utilisant notamment le générateur de grands nombres aléatoires de Bignum. Pour ne pas masquer toute la difficulté, nous avons recodé certaines fonctions déjà présentes dans Zarith (et plus performantes…) relatives aux nombres premiers.
+\item[\texttt{LLL.ml}] Ce module contient une implémentation de l'algorithme LLL en utilisant Bignum.
+\item[\texttt{mh.ml}] Il s'agit de l'interface en ligne de commande qui ne fait qu'appeler des fonctions de \lstinline|Crypto| avec une logique très limitée.
+\end{description}
+
+\paragraph{Compilation, documentation} Pour compiler le projet après avoir installé les modules nécessaires, \texttt{make} devrait être suffisant pour une version d'OCaml supérieure à la 4.02.3.\footnote{Une régression dans le paquet Bignum présent dans les dépôts opam nous a contraints à adapter le code en conséquence. Pour OCaml 4.02.3, se reporter au \texttt{README.md}.}\\
+La documentation HTML est disponible dans \texttt{doc/} et peut être (re)générée avec \texttt{make doc}. Elle contient notamment la documentation de l'interface \lstinline|Crypto|, limitée aux fonctions sûres.
+
+\paragraph{Utilisation} L'exécutable produit se nomme \texttt{mh} et s'articule autour de sous-commandes \texttt{mh genkey}, \texttt{mh showkey}, \texttt{mh encrypt}, \texttt{mh decrypt} et \texttt{mh atk}. Le manuel s'ouvre en tapant \texttt{./mh} et pour chaque sous-commande, \texttt{./mh cmd ---help}.
